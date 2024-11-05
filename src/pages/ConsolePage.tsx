@@ -31,6 +31,14 @@ import { Map } from '../components/Map';
 import './ConsolePage.scss';
 import { isJsxOpeningLikeElement } from 'typescript';
 
+interface UsageTotal {
+  input_audio_tokens: number;
+  output_audio_tokens: number;
+  input_text_tokens: number;
+  output_text_tokens: number;
+  cost: number;
+}
+
 /**
  * Type for result from get_weather() function call
  */
@@ -60,19 +68,6 @@ interface RealtimeEvent {
 
 export function ConsolePage() {
   /**
-   * Ask user for API Key
-   * If we're using the local relay server, we don't need this
-   */
-  // const apiKey = LOCAL_RELAY_SERVER_URL
-  //   ? ''
-  //   : localStorage.getItem('tmp::voice_api_key') ||
-  //     prompt('OpenAI API Key') ||
-  //     '';
-  // if (apiKey !== '') {
-  //   localStorage.setItem('tmp::voice_api_key', apiKey);
-  // }
-
-  /**
    * Instantiate:
    * - WavRecorder (speech input)
    * - WavStreamPlayer (speech output)
@@ -85,11 +80,10 @@ export function ConsolePage() {
     new WavStreamPlayer({ sampleRate: 24000 })
   );
 
-  // 浏览器 client 
   const clientRef = useRef<RealtimeClient>(
     new RealtimeClient({
       url: 'https://dev-api.batata.ai',
-      // url: 'http://localhost:9005', 
+      // url: 'http://localhost:9005',
       path: '/v1/realtime',
     })
   );
@@ -127,6 +121,14 @@ export function ConsolePage() {
     lng: -122.418137,
   });
   const [marker, setMarker] = useState<Coordinates | null>(null);
+
+  const [usage, setUsage] = useState<UsageTotal>({
+    input_audio_tokens: 0,
+    output_audio_tokens: 0,
+    input_text_tokens: 0,
+    output_text_tokens: 0,
+    cost: 0,
+  });
 
   /**
    * Utility for formatting the timing of logs
@@ -210,6 +212,13 @@ export function ConsolePage() {
       lng: -122.418137,
     });
     setMarker(null);
+    setUsage({
+      input_audio_tokens: 0,
+      output_audio_tokens: 0,
+      input_text_tokens: 0,
+      output_text_tokens: 0,
+      cost: 0,
+    });
 
     const client = clientRef.current;
     client.disconnect();
@@ -263,9 +272,19 @@ export function ConsolePage() {
     if (value === 'none' && wavRecorder.getStatus() === 'recording') {
       await wavRecorder.pause();
     }
-    client.updateSession({
-      turn_detection: value === 'none' ? null : { type: 'server_vad' },
-    });
+
+    let data = null;
+    if (value === 'server_vad') {
+      data = {
+        type: 'server_vad',
+        threshold: 0.5,
+        prefix_padding_ms: 300,
+        silence_duration_ms: 500,
+      };
+    }
+
+    client.realtime.sendCustom('session.update.vad', data);
+
     if (value === 'server_vad' && client.isConnected()) {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
     }
@@ -379,174 +398,6 @@ export function ConsolePage() {
     const wavStreamPlayer = wavStreamPlayerRef.current;
     const client = clientRef.current;
 
-    // Set instructions
-    // client.updateSession({ instructions: instructions });
-    // Set transcription, otherwise we don't get user transcriptions back
-    // client.updateSession({ input_audio_transcription: { model: 'whisper-1' } });
-
-    // client.addTool(
-    //   {
-    //     name: 'play_action',
-    //     description: 'Retrieves action you will take when replying to this message on your most talking',
-    //     parameters: {
-    //       type: 'object',
-    //       properties: {
-    //         action: {
-    //           type: 'string',
-    //           enum: ["Arrogant", "LookForward", "Confused", "Talking01", "Dance"],
-    //           description: 'the action'
-    //         },
-    //       },
-    //       required: ['action'],
-    //     },
-    //   },
-    //   async ({ action }: { [key: string]: any }) => {
-
-    //     return { action };
-    //   }
-    // );
-
-    // client.addTool(
-    //   {
-    //     name: 'set_memory',
-    //     description: 'Saves important data about the user into memory.',
-    //     parameters: {
-    //       type: 'object',
-    //       properties: {
-    //         key: {
-    //           type: 'string',
-    //           description:
-    //             'The key of the memory value. Always use lowercase and underscores, no other characters.',
-    //         },
-    //         value: {
-    //           type: 'string',
-    //           description: 'Value can be anything represented as a string',
-    //         },
-    //       },
-    //       required: ['key', 'value'],
-    //     },
-    //   },
-    //   async ({ key, value }: { [key: string]: any }) => {
-    //     setMemoryKv((memoryKv) => {
-    //       const newKv = { ...memoryKv };
-    //       newKv[key] = value;
-    //       return newKv;
-    //     });
-    //     return { ok: true };
-    //   }
-    // );
-
-    // client.addTool(
-    //   {
-    //     name: 'get_current_location',
-    //     description:
-    //       '获取当前位置的经纬度',
-    //     parameters: {
-    //     },
-    //   },
-    //   async ({}) => {
-
-    //     // our_wws_server.send ("get_current_location")
-    //     // client_send _set_current_location
-    //     //
-    //   // })
-
-    //     return { latitude: '51°30′35.5140″N', longitude: '0°7′5.1312″W'  };
-    //     //
-    //   }
-    // );
-
-    // client.addTool(
-    //   {
-    //     name: 'get_weather',
-    //     description:
-    //       'Retrieves the weather for a given lat, lng coordinate pair. Specify a label for the location.',
-    //     parameters: {
-    //       type: 'object',
-    //       properties: {
-    //         lat: {
-    //           type: 'number',
-    //           description: 'Latitude',
-    //         },
-    //         lng: {
-    //           type: 'number',
-    //           description: 'Longitude',
-    //         },
-    //         location: {
-    //           type: 'string',
-    //           description: 'Name of the location',
-    //         },
-    //       },
-    //       required: ['lat', 'lng', 'location'],
-    //     },
-    //   },
-    //   async ({ lat, lng, location }: { [key: string]: any }) => {
-    //     setMarker({ lat, lng, location });
-    //     setCoords({ lat, lng, location });
-    //     const result = await fetch(
-    //       `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=temperature_2m,wind_speed_10m`
-    //     );
-    //     const json = await result.json();
-    //     const temperature = {
-    //       value: json.current.temperature_2m as number,
-    //       units: json.current_units.temperature_2m as string,
-    //     };
-    //     const wind_speed = {
-    //       value: json.current.wind_speed_10m as number,
-    //       units: json.current_units.wind_speed_10m as string,
-    //     };
-    //     setMarker({ lat, lng, location, temperature, wind_speed });
-    //     return json;
-    //   }
-    // );
-
-    // client.addTool(
-    //   {
-    //     name: 'Start_draw',
-    //     description: 'After talking end, Draw a picture for a given prompt',
-    //     // description:
-    //     //   'Retrieves the weather for a given lat, lng coordinate pair. Specify a label for the location.',
-    //     parameters: {
-    //       type: 'object',
-    //       properties: {
-    //         prompt: {
-    //           type: 'string',
-    //           description: "Image generated prompt",
-    //         },
-    //       },
-    //       required: ['prompt'],
-    //     },
-    //   },
-    //   async ({ prompt }: { [key: string]: any }) => {
-    //     try {
-    //       const result = await fetch('https://dev-aigc-hub.batata.ai/api/images/generations', {
-    //         method: 'POST',
-    //         headers: {
-    //             'accept': 'application/json',
-    //             'Cubyfun-Auth': 'sk-041033aa-6ac2a3a-37f39b0-3abe1df-c558aed-2fcd300',
-    //             'Content-Type': 'application/json'
-    //         },
-    //         body: JSON.stringify({
-    //             "prompt": prompt,
-    //             "model": "dall-e-2",
-    //             "n": 1,
-    //             "quality": "standard",
-    //             "response_format": "url",
-    //             "size": "1024x1024",
-    //             "style": "vivid",
-    //             "uid": "50016cc2-d683-471d-8ea2-d18715b37632"
-    //         })
-    //     })
-    //       const json = await result.json();
-    //       return json?.data[0];
-    //     } catch (error) {
-    //       return {url: null , ok: false }
-
-    //     }
-
-    //   }
-    // );
-
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
       setRealtimeEvents((realtimeEvents) => {
@@ -559,6 +410,29 @@ export function ConsolePage() {
           return realtimeEvents.concat(realtimeEvent);
         }
       });
+      if(realtimeEvent.event.type === 'response.done') {
+        setUsage((usage) => {
+          const u = realtimeEvent.event.response.usage;
+          const input_audio_tokens = u.input_token_details.audio_tokens;
+          const output_audio_tokens = u.output_token_details.audio_tokens;
+          const input_text_tokens = u.input_token_details.text_tokens;
+          const output_text_tokens = u.output_token_details.text_tokens;
+
+          const currentCost = input_audio_tokens * 100 / 1000000 + 
+            output_audio_tokens * 200 / 1000000 + 
+            input_text_tokens * 5 / 1000000 + 
+            output_text_tokens * 20 / 1000000;
+
+          return {
+            output_audio_tokens: usage.output_audio_tokens + output_audio_tokens,
+            input_audio_tokens: usage.input_audio_tokens + input_audio_tokens,
+            output_text_tokens: usage.output_text_tokens + output_text_tokens,
+            input_text_tokens: usage.input_text_tokens + input_text_tokens,
+            cost: usage.cost + currentCost
+          }
+        })
+      }
+
     });
     client.on('error', (event: any) => console.error(event));
     client.on('conversation.interrupted', async () => {
@@ -585,15 +459,8 @@ export function ConsolePage() {
 
     });
 
-    client.on('conversation.item.completed', async ({  }: any) => {
-      const items = client.conversation.getItems();
-      // console.log(JSON.parse(JSON.stringify(client.conversation)), 333);
-    });
 
     setItems(client.conversation.getItems());
-
-
-    
 
     return () => {
       // cleanup; resets to defaults
@@ -634,7 +501,9 @@ export function ConsolePage() {
                 <canvas ref={serverCanvasRef} />
               </div>
             </div>
-            <div className="content-block-title">events</div>
+            <div className="content-block-title">events
+              <span className='cost'>${usage.cost.toFixed(2)}</span>
+            </div>
             <div className="content-block-body" ref={eventsScrollRef}>
               {!realtimeEvents.length && `awaiting connection...`}
               {realtimeEvents.map((realtimeEvent, i) => {
