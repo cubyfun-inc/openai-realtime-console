@@ -58,7 +58,7 @@ export class RealtimeConversation {
             this.queuedInputAudio = null;
           }
         } else {
-          newItem.status = 'in_progress';
+          newItem.status = newItem.status === 'completed' ? 'completed' : 'in_progress';
         }
       } else if (newItem.type === 'function_call') {
         newItem.formatted.tool = {

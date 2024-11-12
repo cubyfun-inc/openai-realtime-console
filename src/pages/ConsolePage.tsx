@@ -12,15 +12,12 @@
 //   process.env.REACT_APP_LOCAL_RELAY_SERVER_URL || '';
 
 import { useEffect, useRef, useCallback, useState } from 'react';
-// import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
-// import { RealtimeClient } from '@openai/realtime-api-beta';
 import {
   RealtimeClient,
   type ItemType,
 } from '../lib/realtime-api-beta/client.js';
 
 import { WavRecorder, WavStreamPlayer } from '../lib/wavtools/index.js';
-import { instructions } from '../utils/conversation_config.js';
 import { WavRenderer } from '../utils/wav_renderer';
 
 import { X, Edit, Zap, ArrowUp, ArrowDown } from 'react-feather';
@@ -29,7 +26,6 @@ import { Toggle } from '../components/toggle/Toggle';
 import { Map } from '../components/Map';
 
 import './ConsolePage.scss';
-import { isJsxOpeningLikeElement } from 'typescript';
 
 interface UsageTotal {
   input_audio_tokens: number;
@@ -410,7 +406,7 @@ export function ConsolePage() {
           return realtimeEvents.concat(realtimeEvent);
         }
       });
-      if(realtimeEvent.event.type === 'response.done') {
+      if (realtimeEvent.event.type === 'response.done') {
         setUsage((usage) => {
           const u = realtimeEvent.event.response.usage;
           const input_audio_tokens = u.input_token_details.audio_tokens;
@@ -418,21 +414,22 @@ export function ConsolePage() {
           const input_text_tokens = u.input_token_details.text_tokens;
           const output_text_tokens = u.output_token_details.text_tokens;
 
-          const currentCost = input_audio_tokens * 100 / 1000000 + 
-            output_audio_tokens * 200 / 1000000 + 
-            input_text_tokens * 5 / 1000000 + 
-            output_text_tokens * 20 / 1000000;
+          const currentCost =
+            (input_audio_tokens * 100) / 1000000 +
+            (output_audio_tokens * 200) / 1000000 +
+            (input_text_tokens * 5) / 1000000 +
+            (output_text_tokens * 20) / 1000000;
 
           return {
-            output_audio_tokens: usage.output_audio_tokens + output_audio_tokens,
+            output_audio_tokens:
+              usage.output_audio_tokens + output_audio_tokens,
             input_audio_tokens: usage.input_audio_tokens + input_audio_tokens,
             output_text_tokens: usage.output_text_tokens + output_text_tokens,
             input_text_tokens: usage.input_text_tokens + input_text_tokens,
-            cost: usage.cost + currentCost
-          }
-        })
+            cost: usage.cost + currentCost,
+          };
+        });
       }
-
     });
     client.on('error', (event: any) => console.error(event));
     client.on('conversation.interrupted', async () => {
@@ -478,6 +475,7 @@ export function ConsolePage() {
           <img src="/openai-logomark.svg" />
           <span>realtime console</span>
         </div>
+
         {/* <div className="content-api-key">
           {!LOCAL_RELAY_SERVER_URL && (
             <Button
@@ -501,8 +499,9 @@ export function ConsolePage() {
                 <canvas ref={serverCanvasRef} />
               </div>
             </div>
-            <div className="content-block-title">events
-              <span className='cost'>${usage.cost.toFixed(2)}</span>
+            <div className="content-block-title">
+              events
+              <span className="cost">${usage.cost.toFixed(2)}</span>
             </div>
             <div className="content-block-body" ref={eventsScrollRef}>
               {!realtimeEvents.length && `awaiting connection...`}
