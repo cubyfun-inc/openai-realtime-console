@@ -20,12 +20,42 @@ import {
 import { WavRecorder, WavStreamPlayer } from '../lib/wavtools/index.js';
 import { WavRenderer } from '../utils/wav_renderer';
 
-import { X, Edit, Zap, ArrowUp, ArrowDown } from 'react-feather';
+import { X,Zap, ArrowUp, ArrowDown } from 'react-feather';
 import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
+import { Select } from '../components/select/Select';
 import { Map } from '../components/Map';
 
 import './ConsolePage.scss';
+
+type Voice =
+| 'alloy'
+| 'ash'
+| 'ballad'
+| 'coral'
+| 'echo'
+| 'sage'
+| 'shimmer'
+| 'verse'
+| (string & Record<string, never>);
+
+const voiceOptions: {value: Voice, label: Voice}[] = [
+  { value: 'alloy', label: 'alloy' },
+  { value: 'ash', label: 'ash' },
+  { value: 'ballad', label: 'ballad' },
+
+  { value: 'coral', label: 'coral' },
+  { value: 'echo', label: 'echo' },
+  { value: 'sage', label: 'sage' },
+
+  { value: 'shimmer', label: 'shimmer' },
+  { value: 'verse', label: 'verse' },
+];
+
+const urlOptions = [
+  { value: 'https://dev-api.batata.ai', label: '测试环境: https://dev-api.batata.ai' },
+  { value: 'http://localhost:9005', label: '本机环境: http://localhost:9005' },
+];
 
 interface UsageTotal {
   input_audio_tokens: number;
@@ -63,6 +93,12 @@ interface RealtimeEvent {
 }
 
 export function ConsolePage() {
+
+  const [voice, SetVoice] = useState<Voice>('sage');
+
+  const [url, SetUrl] = useState<string>('https://dev-api.batata.ai');
+  // const [url, SetUrl] = useState<string>('http://localhost:9005');
+
   /**
    * Instantiate:
    * - WavRecorder (speech input)
@@ -78,11 +114,17 @@ export function ConsolePage() {
 
   const clientRef = useRef<RealtimeClient>(
     new RealtimeClient({
-      url: 'https://dev-api.batata.ai',
-      // url: 'http://localhost:9005',
+      url: url, 
       path: '/v1/realtime',
     })
   );
+
+  useEffect(() => {
+    clientRef.current = new RealtimeClient({
+      url: url,
+      path: '/v1/realtime',
+    });
+  }, [url]);
 
   /**
    * References for
@@ -182,6 +224,9 @@ export function ConsolePage() {
 
     // Connect to realtime API
     await client.connect();
+    // 更新 voice
+    client.realtime.sendCustom('session.update.voice', voice);
+
     // client.sendUserMessageContent([
     //   {
     //     type: `input_text`,
@@ -193,7 +238,7 @@ export function ConsolePage() {
     if (client.getTurnDetectionType() === 'server_vad') {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
     }
-  }, []);
+  }, [voice]);
 
   /**
    * Disconnect and reset conversation state
@@ -453,9 +498,7 @@ export function ConsolePage() {
         item.formatted.file = wavFile;
       }
       setItems(items);
-
     });
-
 
     setItems(client.conversation.getItems());
 
@@ -474,6 +517,28 @@ export function ConsolePage() {
         <div className="content-title">
           <img src="/openai-logomark.svg" />
           <span>realtime console</span>
+        </div>
+        <div>
+          <span>Voice:  </span>
+          <Select
+            options={voiceOptions}
+            value={voice}
+            onChange={(value) => {
+              SetVoice(value as Voice)
+            }}
+          />
+        </div>
+        <div style={{
+          marginLeft: '60px'
+        }}>
+          <span>API Address: </span>
+          <Select
+            options={urlOptions}
+            value={url}
+            onChange={(value) => {
+              SetUrl(value)
+            }}
+          />
         </div>
 
         {/* <div className="content-api-key">

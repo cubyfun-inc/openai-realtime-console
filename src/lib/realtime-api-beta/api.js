@@ -176,6 +176,12 @@ export class RealtimeAPI extends RealtimeEventHandler {
     return true;
   }
 
+  sendCustom(eventName, data) {
+    this.socket.emit(eventName, data); // 通过 socket.io 发事件
+    return true;
+  }
+
+
   /**
    * emit 自定义事件
    * @param {string} eventName
