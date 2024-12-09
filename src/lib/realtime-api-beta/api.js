@@ -2,6 +2,9 @@ import { RealtimeEventHandler } from './event_handler.js';
 import { RealtimeUtils } from './utils.js';
 import { io } from 'socket.io-client';
 
+export const sleep = (t) =>
+  new Promise((r) => setTimeout(() => r(), t));
+
 export class RealtimeAPI extends RealtimeEventHandler {
   /**
    * Create a new RealtimeAPI instance
@@ -59,7 +62,8 @@ export class RealtimeAPI extends RealtimeEventHandler {
         characterTplName: 'Batagon',
       },
       auth: {
-        'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6ab',
+        'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6a6',
+        // 'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6ab',
         // authorization: '',
         // authorization: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QzQGN1YnkuZnVuIiwic3ViIjoiZjhlMjZiNjUtODk5My00ODVjLWE4ODEtMzRiOWUzYzI0OTE5IiwiaWF0IjoxNzEyMTIwODM2LCJleHAiOjE3MTIxNDk2MzZ9.1rBbokLIUx-zfPDTlxtzoYM0ndYIBgg2WZwXEZmUa2k',
         // authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxQGN1YnkuZnVuIiwic3ViIjoiNGFlN2MyZjEtOGI5Mi00ZDk0LTlkNzItYWU1NGM5OGJjODhhIiwiaWF0IjoxNzI5NzM3ODkxLCJleHAiOjE3Mjk3NjY2OTF9.3YYu8zNXABBsOBGBk7jA2qS2EjLlOqyKnSYd_GCXTUA',
@@ -79,11 +83,38 @@ export class RealtimeAPI extends RealtimeEventHandler {
       this.receive(message.type, message);
     });
 
-    socket.on('call_client_function', (data, callback) => {
+    socket.on('call_client_function', (data) => {
       console.log('call_client_function', data);
-
-      // callback({ status: 'success', data: 'Hello back!' });
     });
+
+    // let flag = false
+
+    // socket.on('call_client_function_with_ack_and_timeout', async (data, callback) => {
+    //   console.log(
+    //     'call_client_function_with_ack_and_timeout',
+    //     data,
+    //     typeof data
+    //   );
+    //   const tool = JSON.parse(data)
+
+    //   callback({
+    //     status: 'in_progress',
+    //     message: 'ack response, await run task'
+    //   });
+
+    //   this.sendCustom(`call_client_function_output_${tool.call_id}`, JSON.stringify({
+    //     function_status: 'in_progress', 
+    //     message: '正在查询中, 请稍等一下，很快就好'
+    //   }));
+
+    //   await sleep(1000 * 5)
+    //   this.sendCustom(`call_client_function_output_${tool.call_id}`, JSON.stringify({
+    //     function_status: 'complete', 
+    //     data: {
+    //       currentTime: new Date()
+    //     }
+    //   }));
+    // });
 
     return new Promise((resolve, reject) => {
       const connectionErrorHandler = (e) => {
@@ -95,13 +126,16 @@ export class RealtimeAPI extends RealtimeEventHandler {
 
       socket.on('connect_error', connectionErrorHandler);
       socket.on('connect', () => {
+
+        console.log('connect', new Date());
+
         // console.log('recovered?', socket.recovered);
 
         // setTimeout(() => {
         //   console.log('setTimeout');
         //   if (socket.io.engine) {
         //     console.log('1111,222');
-            
+
         //     // close the low-level connection and trigger a reconnection
         //     socket.io.engine.close();
         //   }
@@ -181,18 +215,17 @@ export class RealtimeAPI extends RealtimeEventHandler {
     return true;
   }
 
-
   /**
    * emit 自定义事件
    * @param {string} eventName
    * @param {{[key: string]: any}} event
    * @returns {true}
    */
-    sendCustom(eventName, data) {
-      if (!this.isConnected()) {
-        throw new Error(`RealtimeAPI is not connected`);
-      }
-      this.socket.emit(eventName, data); // 通过 socket.io 发事件
-      return true;
+  sendCustom(eventName, data) {
+    if (!this.isConnected()) {
+      throw new Error(`RealtimeAPI is not connected`);
     }
+    this.socket.emit(eventName, data); // 通过 socket.io 发事件
+    return true;
+  }
 }

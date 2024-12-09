@@ -573,6 +573,25 @@ export class RealtimeClient extends RealtimeEventHandler {
       this.realtime.send('input_audio_buffer.append', {
         audio: RealtimeUtils.arrayBufferToBase64(arrayBuffer),
       });
+
+      this.inputAudioBuffer = RealtimeUtils.mergeInt16Arrays(
+        this.inputAudioBuffer,
+        arrayBuffer
+      );
+    }
+    return true;
+  }
+
+
+  /**
+   * Appends user audio to the existing audio buffer
+   * @param {Int16Array|ArrayBuffer} arrayBuffer
+   * @returns {true}
+   */
+  customAppendInputAudio(arrayBuffer) {
+    if (arrayBuffer.byteLength > 0) {
+      console.log('input_audio_buffer.append',arrayBuffer);
+
       this.inputAudioBuffer = RealtimeUtils.mergeInt16Arrays(
         this.inputAudioBuffer,
         arrayBuffer
@@ -595,6 +614,20 @@ export class RealtimeClient extends RealtimeEventHandler {
       this.inputAudioBuffer = new Int16Array(0);
     }
     this.realtime.send('response.create');
+    return true;
+  }
+
+  createResponseAudioToText() {
+    if (
+      this.getTurnDetectionType() === null &&
+      this.inputAudioBuffer.byteLength > 0
+    ) {
+      this.realtime.send('input_audio_buffer.custom_append', {
+        audio: RealtimeUtils.arrayBufferToBase64(this.inputAudioBuffer),
+      });
+      this.conversation.queueInputAudio(this.inputAudioBuffer);
+      this.inputAudioBuffer = new Int16Array(0);
+    }
     return true;
   }
 

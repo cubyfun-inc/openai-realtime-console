@@ -52,6 +52,11 @@ const voiceOptions: {value: Voice, label: Voice}[] = [
   { value: 'verse', label: 'verse' },
 ];
 
+const enableOption = [
+  { value: 'enable', label: 'enable' },
+  { value: 'disable', label: 'disable' },
+]
+
 const urlOptions = [
   { value: 'https://dev-api.batata.ai', label: '测试环境: https://dev-api.batata.ai' },
   { value: 'http://localhost:9005', label: '本机环境: http://localhost:9005' },
@@ -94,6 +99,8 @@ interface RealtimeEvent {
 
 export function ConsolePage() {
 
+  const [cutting, setCutting] = useState<string>('enable');
+
   const [voice, SetVoice] = useState<Voice>('sage');
 
   const [url, SetUrl] = useState<string>('https://dev-api.batata.ai');
@@ -112,6 +119,7 @@ export function ConsolePage() {
     new WavStreamPlayer({ sampleRate: 24000 })
   );
 
+  
   const clientRef = useRef<RealtimeClient>(
     new RealtimeClient({
       url: url, 
@@ -119,12 +127,12 @@ export function ConsolePage() {
     })
   );
 
-  useEffect(() => {
-    clientRef.current = new RealtimeClient({
-      url: url,
-      path: '/v1/realtime',
-    });
-  }, [url]);
+  // useEffect(() => {
+  //   clientRef.current = new RealtimeClient({
+  //     url: url,
+  //     path: '/v1/realtime',
+  //   });
+  // }, [url]);
 
   /**
    * References for
@@ -223,9 +231,17 @@ export function ConsolePage() {
     await wavStreamPlayer.connect();
 
     // Connect to realtime API
+    const requestTime = Date.now()
+    console.log('当前时间', new Date());
+
     await client.connect();
+    console.log('socket连接建立', new Date(), Date.now() - requestTime);
+
+    await client.waitForSessionCreated()
+    console.log('waitForSessionCreated',new Date(), Date.now() - requestTime); 
+    
     // 更新 voice
-    client.realtime.sendCustom('session.update.voice', voice);
+    // client.realtime.sendCustom('session.update.voice', voice);
 
     // client.sendUserMessageContent([
     //   {
@@ -290,7 +306,12 @@ export function ConsolePage() {
       const { trackId, offset } = trackSampleOffset;
       await client.cancelResponse(trackId, offset);
     }
-    await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    if(cutting =='enable') {
+      await wavRecorder.record((data) => client.customAppendInputAudio(data.mono));
+    } else {
+      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    }
+
   };
 
   /**
@@ -301,7 +322,12 @@ export function ConsolePage() {
     const client = clientRef.current;
     const wavRecorder = wavRecorderRef.current;
     await wavRecorder.pause();
-    client.createResponse();
+
+    if(cutting === 'enable') {
+      client.createResponseAudioToText();
+    } else {
+      client.createResponse()
+    }
   };
 
   /**
@@ -519,6 +545,16 @@ export function ConsolePage() {
           <span>realtime console</span>
         </div>
         <div>
+          <span>input audio 成本削减:  </span>
+          <Select
+            options={enableOption}
+            value={cutting}
+            onChange={(value) => {
+              setCutting(value)
+            }}
+          />
+        </div>
+        <div>
           <span>Voice:  </span>
           <Select
             options={voiceOptions}
@@ -533,6 +569,7 @@ export function ConsolePage() {
         }}>
           <span>API Address: </span>
           <Select
+            disabled
             options={urlOptions}
             value={url}
             onChange={(value) => {

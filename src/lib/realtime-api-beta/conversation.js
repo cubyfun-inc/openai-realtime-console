@@ -93,11 +93,12 @@ export class RealtimeConversation {
       if (!item) {
         throw new Error(`item.deleted: Item "${item_id}" not found`);
       }
-      delete this.itemLookup[item.id];
-      const index = this.items.indexOf(item);
-      if (index > -1) {
-        this.items.splice(index, 1);
-      }
+      // 不在原始队列删除
+      // delete this.itemLookup[item.id];
+      // const index = this.items.indexOf(item);
+      // if (index > -1) {
+      //   this.items.splice(index, 1);
+      // }
       return { item, delta: null };
     },
     'conversation.item.input_audio_transcription.completed': (event) => {
