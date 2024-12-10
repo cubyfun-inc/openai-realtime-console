@@ -189,9 +189,9 @@ import { RealtimeUtils } from './utils.js';
 export class RealtimeClient extends RealtimeEventHandler {
   /**
    * Create a new RealtimeClient instance
-   * @param {{url?: string, apiKey?: string, path?: string, debug?: boolean}} [settings]
+   * @param {{url?: string, path?: string, debug?: boolean, options?: any}} [settings]
    */
-  constructor({ url, apiKey, path, debug } = {}) {
+  constructor({ url, path, debug, options = {} } = {}) {
     super();
     this.defaultSessionConfig = {
       modalities: ['text', 'audio'],
@@ -223,14 +223,31 @@ export class RealtimeClient extends RealtimeEventHandler {
     this.realtime = new RealtimeAPI({
       url,
       path,
-      apiKey,
       debug,
+      options
     });
     this.conversation = new RealtimeConversation();
     this._resetConfig();
     this._addAPIEventHandlers();
-  }
+  } 
 
+  /**
+   * Create a new RealtimeClient instance
+   * @param {{url?: string, path?: string, debug?: boolean, options?: any}} [settings]
+   */
+  _resetClient({ url, path, debug, options = {} } = {}) {
+    this.realtime = new RealtimeAPI({
+      url,
+      path,
+      debug,
+      options
+    });
+    
+    this.conversation = new RealtimeConversation();
+    this._resetConfig();
+    this._addAPIEventHandlers();
+    
+  }
   /**
    * Resets sessionConfig and conversationConfig to default
    * @private
@@ -622,9 +639,7 @@ export class RealtimeClient extends RealtimeEventHandler {
       this.getTurnDetectionType() === null &&
       this.inputAudioBuffer.byteLength > 0
     ) {
-      this.realtime.send('input_audio_buffer.custom_append', {
-        audio: RealtimeUtils.arrayBufferToBase64(this.inputAudioBuffer),
-      });
+      this.realtime.send('input_audio_buffer.commit');
       this.conversation.queueInputAudio(this.inputAudioBuffer);
       this.inputAudioBuffer = new Int16Array(0);
     }

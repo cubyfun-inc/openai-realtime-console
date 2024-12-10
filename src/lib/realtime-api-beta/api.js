@@ -8,15 +8,16 @@ export const sleep = (t) =>
 export class RealtimeAPI extends RealtimeEventHandler {
   /**
    * Create a new RealtimeAPI instance
-   * @param {{url?: string, debug?: boolean}} [settings]
+   * @param {{url?: string, debug?: boolean, options?: any}} [settings]
    * @returns {RealtimeAPI}
    */
-  constructor({ url, debug, path } = {}) {
+  constructor({ url, debug, path, options = {} } = {}) {
     super();
     this.url = url;
     this.path = path ?? '';
     this.debug = !!debug;
     this.socket = null;
+    this.options = options
   }
 
   /**
@@ -59,14 +60,10 @@ export class RealtimeAPI extends RealtimeEventHandler {
     const socket = io(this.url, {
       path: this.path,
       query: {
-        characterTplName: 'Batagon',
+        ...this.options.query 
       },
       auth: {
-        'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6a6',
-        // 'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6ab',
-        // authorization: '',
-        // authorization: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QzQGN1YnkuZnVuIiwic3ViIjoiZjhlMjZiNjUtODk5My00ODVjLWE4ODEtMzRiOWUzYzI0OTE5IiwiaWF0IjoxNzEyMTIwODM2LCJleHAiOjE3MTIxNDk2MzZ9.1rBbokLIUx-zfPDTlxtzoYM0ndYIBgg2WZwXEZmUa2k',
-        // authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxQGN1YnkuZnVuIiwic3ViIjoiNGFlN2MyZjEtOGI5Mi00ZDk0LTlkNzItYWU1NGM5OGJjODhhIiwiaWF0IjoxNzI5NzM3ODkxLCJleHAiOjE3Mjk3NjY2OTF9.3YYu8zNXABBsOBGBk7jA2qS2EjLlOqyKnSYd_GCXTUA',
+        ...this.options.auth 
       },
       withCredentials: true,
       transports: ['websocket'],

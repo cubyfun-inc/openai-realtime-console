@@ -20,7 +20,7 @@ import {
 import { WavRecorder, WavStreamPlayer } from '../lib/wavtools/index.js';
 import { WavRenderer } from '../utils/wav_renderer';
 
-import { X,Zap, ArrowUp, ArrowDown } from 'react-feather';
+import { X, Zap, ArrowUp, ArrowDown } from 'react-feather';
 import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
 import { Select } from '../components/select/Select';
@@ -28,18 +28,20 @@ import { Map } from '../components/Map';
 
 import './ConsolePage.scss';
 
-type Voice =
-| 'alloy'
-| 'ash'
-| 'ballad'
-| 'coral'
-| 'echo'
-| 'sage'
-| 'shimmer'
-| 'verse'
-| (string & Record<string, never>);
+const isDev = false;
 
-const voiceOptions: {value: Voice, label: Voice}[] = [
+type Voice =
+  | 'alloy'
+  | 'ash'
+  | 'ballad'
+  | 'coral'
+  | 'echo'
+  | 'sage'
+  | 'shimmer'
+  | 'verse'
+  | (string & Record<string, never>);
+
+const voiceOptions: { value: Voice; label: Voice }[] = [
   { value: 'alloy', label: 'alloy' },
   { value: 'ash', label: 'ash' },
   { value: 'ballad', label: 'ballad' },
@@ -52,13 +54,21 @@ const voiceOptions: {value: Voice, label: Voice}[] = [
   { value: 'verse', label: 'verse' },
 ];
 
-const enableOption = [
+const flagOption = [
   { value: 'enable', label: 'enable' },
   { value: 'disable', label: 'disable' },
-]
+];
+
+enum FlagEnum {
+  ENABLE = 'enable',
+  DISABLE = 'disable',
+}
 
 const urlOptions = [
-  { value: 'https://dev-api.batata.ai', label: '测试环境: https://dev-api.batata.ai' },
+  {
+    value: 'https://dev-api.batata.ai',
+    label: '测试环境: https://dev-api.batata.ai',
+  },
   { value: 'http://localhost:9005', label: '本机环境: http://localhost:9005' },
 ];
 
@@ -98,12 +108,13 @@ interface RealtimeEvent {
 }
 
 export function ConsolePage() {
-
-  const [cutting, setCutting] = useState<string>('enable');
+  const [frontPointCutCost, setFrontPointCutCost] = useState<string>('enable');
 
   const [voice, SetVoice] = useState<Voice>('sage');
 
-  const [url, SetUrl] = useState<string>('https://dev-api.batata.ai');
+  const [url, SetUrl] = useState<string>(
+    isDev ? 'http://localhost:9005' : 'https://dev-api.batata.ai'
+  );
   // const [url, SetUrl] = useState<string>('http://localhost:9005');
 
   /**
@@ -119,20 +130,46 @@ export function ConsolePage() {
     new WavStreamPlayer({ sampleRate: 24000 })
   );
 
-  
   const clientRef = useRef<RealtimeClient>(
     new RealtimeClient({
-      url: url, 
+      url: url,
       path: '/v1/realtime',
+      options: {
+        query: {
+          characterTplVoice: voice,
+          characterTplName: 'Batagon',
+          frontPointCutCost: frontPointCutCost, // 'enable' || 'disable'
+        },
+        auth: {
+          'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6a6',
+          // 'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6ab',
+          // authorization: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QzQGN1YnkuZnVuIiwic3ViIjoiZjhlMjZiNjUtODk5My00ODVjLWE4ODEtMzRiOWUzYzI0OTE5IiwiaWF0IjoxNzEyMTIwODM2LCJleHAiOjE3MTIxNDk2MzZ9.1rBbokLIUx-zfPDTlxtzoYM0ndYIBgg2WZwXEZmUa2k',
+          // authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxQGN1YnkuZnVuIiwic3ViIjoiNGFlN2MyZjEtOGI5Mi00ZDk0LTlkNzItYWU1NGM5OGJjODhhIiwiaWF0IjoxNzI5NzM3ODkxLCJleHAiOjE3Mjk3NjY2OTF9.3YYu8zNXABBsOBGBk7jA2qS2EjLlOqyKnSYd_GCXTUA',
+        },
+      },
     })
   );
 
-  // useEffect(() => {
-  //   clientRef.current = new RealtimeClient({
-  //     url: url,
-  //     path: '/v1/realtime',
-  //   });
-  // }, [url]);
+  useEffect(() => {
+    const client = clientRef.current;
+    disconnectConversation()
+
+    client._resetClient({
+      url: url,
+      path: '/v1/realtime',
+      options: {
+        query: {
+          voice: voice,
+          characterTplName: 'Batagon',
+          frontPointCutCost: frontPointCutCost,
+        },
+        auth: {
+          'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6a6',
+        },
+      },
+    })
+
+  }, [frontPointCutCost, url, voice]);
 
   /**
    * References for
@@ -231,15 +268,15 @@ export function ConsolePage() {
     await wavStreamPlayer.connect();
 
     // Connect to realtime API
-    const requestTime = Date.now()
+    const requestTime = Date.now();
     console.log('当前时间', new Date());
 
     await client.connect();
     console.log('socket连接建立', new Date(), Date.now() - requestTime);
 
-    await client.waitForSessionCreated()
-    console.log('waitForSessionCreated',new Date(), Date.now() - requestTime); 
-    
+    await client.waitForSessionCreated();
+    console.log('waitForSessionCreated', new Date(), Date.now() - requestTime);
+
     // 更新 voice
     // client.realtime.sendCustom('session.update.voice', voice);
 
@@ -254,7 +291,7 @@ export function ConsolePage() {
     if (client.getTurnDetectionType() === 'server_vad') {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
     }
-  }, [voice]);
+  }, []);
 
   /**
    * Disconnect and reset conversation state
@@ -280,11 +317,17 @@ export function ConsolePage() {
     const client = clientRef.current;
     client.disconnect();
 
-    const wavRecorder = wavRecorderRef.current;
-    await wavRecorder.end();
+    try {
+      const wavRecorder = wavRecorderRef.current;
+      await wavRecorder.end();
+  
+      const wavStreamPlayer = wavStreamPlayerRef.current;
+      await wavStreamPlayer.interrupt();
+    } catch (error) {
+      
+    }
 
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-    await wavStreamPlayer.interrupt();
+ 
   }, []);
 
   const deleteConversationItem = useCallback(async (id: string) => {
@@ -306,12 +349,8 @@ export function ConsolePage() {
       const { trackId, offset } = trackSampleOffset;
       await client.cancelResponse(trackId, offset);
     }
-    if(cutting =='enable') {
-      await wavRecorder.record((data) => client.customAppendInputAudio(data.mono));
-    } else {
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
-    }
 
+    await wavRecorder.record((data) => client.appendInputAudio(data.mono));
   };
 
   /**
@@ -323,10 +362,10 @@ export function ConsolePage() {
     const wavRecorder = wavRecorderRef.current;
     await wavRecorder.pause();
 
-    if(cutting === 'enable') {
+    if (frontPointCutCost === FlagEnum.ENABLE) {
       client.createResponseAudioToText();
     } else {
-      client.createResponse()
+      client.createResponse();
     }
   };
 
@@ -545,35 +584,36 @@ export function ConsolePage() {
           <span>realtime console</span>
         </div>
         <div>
-          <span>input audio 成本削减:  </span>
+          <span>前置成本削减(input audio): </span>
           <Select
-            options={enableOption}
-            value={cutting}
+            options={flagOption}
+            value={frontPointCutCost}
             onChange={(value) => {
-              setCutting(value)
+              setFrontPointCutCost(value);
             }}
           />
         </div>
         <div>
-          <span>Voice:  </span>
+          <span>Voice: </span>
           <Select
             options={voiceOptions}
             value={voice}
             onChange={(value) => {
-              SetVoice(value as Voice)
+              SetVoice(value as Voice);
             }}
           />
         </div>
-        <div style={{
-          marginLeft: '60px'
-        }}>
+        <div
+          style={{
+            marginLeft: '60px',
+          }}
+        >
           <span>API Address: </span>
           <Select
-            disabled
             options={urlOptions}
             value={url}
             onChange={(value) => {
-              SetUrl(value)
+              SetUrl(value);
             }}
           />
         </div>
