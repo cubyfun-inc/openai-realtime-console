@@ -141,8 +141,7 @@ export function ConsolePage() {
           frontPointCutCost: frontPointCutCost, // 'enable' || 'disable'
         },
         auth: {
-          'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6a6',
-          // 'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6ab',
+          'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6ab',
           // authorization: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QzQGN1YnkuZnVuIiwic3ViIjoiZjhlMjZiNjUtODk5My00ODVjLWE4ODEtMzRiOWUzYzI0OTE5IiwiaWF0IjoxNzEyMTIwODM2LCJleHAiOjE3MTIxNDk2MzZ9.1rBbokLIUx-zfPDTlxtzoYM0ndYIBgg2WZwXEZmUa2k',
           // authorization: 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3QxQGN1YnkuZnVuIiwic3ViIjoiNGFlN2MyZjEtOGI5Mi00ZDk0LTlkNzItYWU1NGM5OGJjODhhIiwiaWF0IjoxNzI5NzM3ODkxLCJleHAiOjE3Mjk3NjY2OTF9.3YYu8zNXABBsOBGBk7jA2qS2EjLlOqyKnSYd_GCXTUA',
         },
@@ -152,7 +151,7 @@ export function ConsolePage() {
 
   useEffect(() => {
     const client = clientRef.current;
-    disconnectConversation()
+    disconnectConversation();
 
     client._resetClient({
       url: url,
@@ -167,8 +166,7 @@ export function ConsolePage() {
           'Batata-Auth': '25e5eee5-5ca1-4573-bfae-fc8d1b57f6a6',
         },
       },
-    })
-
+    });
   }, [frontPointCutCost, url, voice]);
 
   /**
@@ -252,6 +250,12 @@ export function ConsolePage() {
    */
   const connectConversation = useCallback(async () => {
     const client = clientRef.current;
+
+    // @ts-ignore
+    window.client = null;
+    // @ts-ignore
+    window.client = client;
+
     const wavRecorder = wavRecorderRef.current;
     const wavStreamPlayer = wavStreamPlayerRef.current;
 
@@ -283,7 +287,7 @@ export function ConsolePage() {
     // client.sendUserMessageContent([
     //   {
     //     type: `input_text`,
-    //     text: `Hello!`,
+    //     text: `Hu Hu Hu!`,
     //     // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
     //   },
     // ]);
@@ -320,14 +324,10 @@ export function ConsolePage() {
     try {
       const wavRecorder = wavRecorderRef.current;
       await wavRecorder.end();
-  
+
       const wavStreamPlayer = wavStreamPlayerRef.current;
       await wavStreamPlayer.interrupt();
-    } catch (error) {
-      
-    }
-
- 
+    } catch (error) {}
   }, []);
 
   const deleteConversationItem = useCallback(async (id: string) => {
@@ -508,7 +508,9 @@ export function ConsolePage() {
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
       setRealtimeEvents((realtimeEvents) => {
         const lastEvent = realtimeEvents[realtimeEvents.length - 1];
-        if (lastEvent?.event.type === realtimeEvent.event.type) {
+        if (realtimeEvent.event.type === 'conversation.item.created') {
+          return realtimeEvents.concat(realtimeEvent);
+        } else if (lastEvent?.event.type === realtimeEvent.event.type) {
           // if we receive multiple events in a row, aggregate them for display purposes
           lastEvent.count = (lastEvent.count || 0) + 1;
           return realtimeEvents.slice(0, -1).concat(lastEvent);
